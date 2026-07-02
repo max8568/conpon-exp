@@ -3,7 +3,9 @@ from dataclasses import dataclass
 
 from dotenv import load_dotenv
 
-load_dotenv()
+# override=True 讓專案 .env 優先於既有的系統環境變數(避免外部殘留的
+# BOT_TOKEN 等蓋過本專案設定)
+load_dotenv(override=True)
 
 
 @dataclass
