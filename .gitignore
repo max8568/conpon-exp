@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+.env
+coupons.db
+.venv/
+venv/
