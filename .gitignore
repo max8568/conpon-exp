@@ -4,3 +4,4 @@ __pycache__/
 coupons.db
 .venv/
 venv/
+logs/
