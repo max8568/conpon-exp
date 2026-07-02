@@ -113,3 +113,24 @@ def test_run_daily_check_advances_despite_send_failure():
     second = run(bot.run_daily_check(api, d, date(2026, 7, 2)))
     assert first == 0            # nothing sent successfully
     assert second == -1          # but last_check_date advanced, so deduped
+
+
+def _owner_ids(flt):
+    # CommandHandler stores the User filter directly; the photo MessageHandler
+    # wraps it in a _MergedFilter (base=PHOTO, and_filter=User). Walk to the
+    # component exposing .user_ids.
+    if getattr(flt, "user_ids", None) is not None:
+        return flt.user_ids
+    for part in (getattr(flt, "and_filter", None), getattr(flt, "base_filter", None)):
+        if part is not None and getattr(part, "user_ids", None) is not None:
+            return part.user_ids
+    raise AssertionError("no User filter found")
+
+
+def test_all_handlers_restricted_to_owner():
+    handlers = bot.build_handlers(42)
+    assert len(handlers) == 3
+    for h in handlers:
+        ids = _owner_ids(h.filters)
+        assert 42 in ids
+        assert 99 not in ids

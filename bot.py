@@ -93,7 +93,7 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     _remember_chat(database, update)
     photo = update.message.photo[-1]
     reply = await add_coupon_reply(
-        database, photo.file_id, update.message.caption, datetime.now().isoformat()
+        database, photo.file_id, update.message.caption, datetime.now(_TZ).isoformat()
     )
     await update.message.reply_text(reply)
 
@@ -129,11 +129,19 @@ async def _post_init(application: Application) -> None:
         )
 
 
+def build_handlers(owner_id: int) -> list:
+    owner_filter = filters.User(user_id=owner_id)
+    return [
+        MessageHandler(filters.PHOTO & owner_filter, handle_photo),
+        CommandHandler("list", handle_list, filters=owner_filter),
+        CommandHandler("del", handle_del, filters=owner_filter),
+    ]
+
+
 def main() -> None:
     cfg = load_config()
     database = Database(cfg.db_path)
 
-    owner_filter = filters.User(user_id=cfg.owner_id)
     app = Application.builder().token(cfg.bot_token).post_init(_post_init).build()
     app.bot_data["db"] = database
 
@@ -142,9 +150,8 @@ def main() -> None:
 
     app.add_error_handler(_on_error)
 
-    app.add_handler(MessageHandler(filters.PHOTO & owner_filter, handle_photo))
-    app.add_handler(CommandHandler("list", handle_list, filters=owner_filter))
-    app.add_handler(CommandHandler("del", handle_del, filters=owner_filter))
+    for h in build_handlers(cfg.owner_id):
+        app.add_handler(h)
 
     app.job_queue.run_daily(
         _daily_job, time=time(hour=0, minute=0, tzinfo=_TZ)
