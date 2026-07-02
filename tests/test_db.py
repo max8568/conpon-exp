@@ -17,7 +17,7 @@ def test_add_returns_unique_code():
     d = make_db()
     c1 = d.add_coupon("f1", "a", "2026-07-10", "2026-07-02T10:00:00")
     c2 = d.add_coupon("f2", "b", "2026-07-11", "2026-07-02T10:00:00")
-    assert len(c1) == 4 and c1.isalnum()
+    assert len(c1) == 4 and c1.isalpha() and c1.islower()
     assert c1 != c2
 
 

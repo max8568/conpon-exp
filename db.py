@@ -2,7 +2,7 @@ import secrets
 import sqlite3
 from dataclasses import dataclass
 
-_ALPHABET = "abcdefghijklmnopqrstuvwxyz0123456789"
+_ALPHABET = "abcdefghijklmnopqrstuvwxyz"
 _CODE_LEN = 4
 
 
