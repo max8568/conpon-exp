@@ -37,3 +37,8 @@ def test_bad_date_raises():
 def test_invalid_calendar_date_raises():
     with pytest.raises(ParseError):
         parse_caption("26.13.40 描述")
+
+
+def test_three_digit_year_raises():
+    with pytest.raises(ParseError):
+        parse_caption("202.07.09 描述")

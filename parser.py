@@ -1,7 +1,7 @@
 import re
 from datetime import date
 
-_DATE_RE = re.compile(r"^\s*(\d{2,4})\.(\d{1,2})\.(\d{1,2})\s*(.*)$", re.DOTALL)
+_DATE_RE = re.compile(r"^\s*(\d{2}|\d{4})\.(\d{1,2})\.(\d{1,2})\s*(.*)$", re.DOTALL)
 
 
 class ParseError(Exception):
