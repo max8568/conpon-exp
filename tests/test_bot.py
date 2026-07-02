@@ -25,6 +25,7 @@ def test_add_coupon_reply_success():
     d = Database(":memory:")
     reply = run(bot.add_coupon_reply(d, "file1", "26.07.09 星巴克", "2026-07-02T10:00:00"))
     assert "已新增" in reply
+    assert "星巴克" in reply
     assert "2026-07-09" in reply
     assert len(d.list_coupons()) == 1
 

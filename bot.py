@@ -39,7 +39,7 @@ async def add_coupon_reply(
     except ParseError:
         return _FORMAT_HINT
     code = database.add_coupon(file_id, description, expiry, now_iso)
-    return f"✅ 已新增 {code},到期日 {expiry}"
+    return f"✅ 已新增 {code}\n{description}\n到期日 {expiry}"
 
 
 async def list_reply(database: Database, today: date) -> str:
