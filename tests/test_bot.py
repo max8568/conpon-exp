@@ -80,3 +80,36 @@ def test_run_daily_check_dedups_same_day():
     assert first == 1
     assert second == -1
     assert len(api.photos) == 1
+
+
+class PartialFailBotApi(FakeBotApi):
+    def __init__(self, fail_code):
+        super().__init__()
+        self.fail_code = fail_code
+
+    async def send_photo(self, chat_id, photo, caption):
+        if self.fail_code in caption:
+            raise RuntimeError("boom")
+        await super().send_photo(chat_id, photo, caption)
+
+
+def test_send_due_reminders_continues_past_failure():
+    d = Database(":memory:")
+    d.set_meta("chat_id", "555")
+    d.add_coupon("fx", "壞的", "2026-07-02", "2026-07-02T10:00:00")   # 0 -> send fails
+    d.add_coupon("fy", "好的", "2026-07-09", "2026-07-02T10:00:00")   # 7 -> send ok
+    api = PartialFailBotApi("壞的")
+    count = run(bot.send_due_reminders(api, d, date(2026, 7, 2)))
+    assert count == 1
+    assert len(api.photos) == 1
+
+
+def test_run_daily_check_advances_despite_send_failure():
+    d = Database(":memory:")
+    d.set_meta("chat_id", "555")
+    d.add_coupon("fx", "壞的", "2026-07-02", "2026-07-02T10:00:00")
+    api = PartialFailBotApi("壞的")
+    first = run(bot.run_daily_check(api, d, date(2026, 7, 2)))
+    second = run(bot.run_daily_check(api, d, date(2026, 7, 2)))
+    assert first == 0            # nothing sent successfully
+    assert second == -1          # but last_check_date advanced, so deduped

@@ -1,5 +1,6 @@
 import logging
-from datetime import date, datetime
+from datetime import date, datetime, time
+from zoneinfo import ZoneInfo
 
 from telegram import Update
 from telegram.ext import (
@@ -20,6 +21,12 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 _FORMAT_HINT = "格式錯誤,請附文字說明,例:26.07.09 星巴克買一送一"
+
+_TZ = ZoneInfo("Asia/Taipei")
+
+
+def _today() -> date:
+    return datetime.now(_TZ).date()
 
 
 # ---- 純邏輯(可單元測試,不依賴 telegram 型別) ----
@@ -53,12 +60,15 @@ async def send_due_reminders(bot_api, database: Database, today: date) -> int:
     for c in database.list_coupons():
         if should_remind(c.expiry_date, today):
             days = days_until(c.expiry_date, today)
-            await bot_api.send_photo(
-                chat_id=int(chat_id),
-                photo=c.file_id,
-                caption=reminder_text(c.description, c.expiry_date, c.code, days),
-            )
-            sent += 1
+            try:
+                await bot_api.send_photo(
+                    chat_id=int(chat_id),
+                    photo=c.file_id,
+                    caption=reminder_text(c.description, c.expiry_date, c.code, days),
+                )
+                sent += 1
+            except Exception:
+                logger.exception("發送提醒失敗:coupon %s", c.code)
     return sent
 
 
@@ -91,7 +101,7 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 async def handle_list(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     database: Database = context.application.bot_data["db"]
     _remember_chat(database, update)
-    await update.message.reply_text(await list_reply(database, date.today()))
+    await update.message.reply_text(await list_reply(database, _today()))
 
 
 async def handle_del(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -105,13 +115,13 @@ async def handle_del(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
 
 async def _daily_job(context: ContextTypes.DEFAULT_TYPE) -> None:
     database: Database = context.application.bot_data["db"]
-    await run_daily_check(context.bot, database, date.today())
+    await run_daily_check(context.bot, database, _today())
 
 
 async def _post_init(application: Application) -> None:
     database: Database = application.bot_data["db"]
     # 啟動時當天補發(去重),並發送啟動通知
-    await run_daily_check(application.bot, database, date.today())
+    await run_daily_check(application.bot, database, _today())
     chat_id = database.get_meta("chat_id")
     if chat_id is not None:
         await application.bot.send_message(
@@ -120,9 +130,6 @@ async def _post_init(application: Application) -> None:
 
 
 def main() -> None:
-    from datetime import time
-    from zoneinfo import ZoneInfo
-
     cfg = load_config()
     database = Database(cfg.db_path)
 
@@ -130,12 +137,17 @@ def main() -> None:
     app = Application.builder().token(cfg.bot_token).post_init(_post_init).build()
     app.bot_data["db"] = database
 
+    async def _on_error(update, context):
+        logger.exception("處理更新時發生例外", exc_info=context.error)
+
+    app.add_error_handler(_on_error)
+
     app.add_handler(MessageHandler(filters.PHOTO & owner_filter, handle_photo))
     app.add_handler(CommandHandler("list", handle_list, filters=owner_filter))
     app.add_handler(CommandHandler("del", handle_del, filters=owner_filter))
 
     app.job_queue.run_daily(
-        _daily_job, time=time(hour=0, minute=0, tzinfo=ZoneInfo("Asia/Taipei"))
+        _daily_job, time=time(hour=0, minute=0, tzinfo=_TZ)
     )
 
     app.run_polling()
