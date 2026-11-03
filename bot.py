@@ -18,6 +18,8 @@ from parser import ParseError, parse_caption
 from reminder import days_until, reminder_text, should_remind
 
 logging.basicConfig(level=logging.INFO)
+# httpx 的 INFO log 會印出含 bot token 的完整網址
+logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 _FORMAT_HINT = "格式錯誤,請附文字說明,例:26.07.09 星巴克買一送一"

@@ -128,6 +128,13 @@ def _owner_ids(flt):
     raise AssertionError("no User filter found")
 
 
+def test_httpx_info_logs_suppressed():
+    # httpx INFO 會把含 bot token 的網址寫進 log。正式環境 root 是 INFO,
+    # 所以 httpx 必須自己設 WARNING,不能靠繼承 root 的等級。
+    import logging
+    assert logging.getLogger("httpx").level >= logging.WARNING
+
+
 def test_all_command_same_as_list():
     by_command = {
         c: h for h in bot.build_handlers(42) for c in getattr(h, "commands", ())
