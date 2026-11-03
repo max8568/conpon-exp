@@ -128,9 +128,16 @@ def _owner_ids(flt):
     raise AssertionError("no User filter found")
 
 
+def test_all_command_same_as_list():
+    by_command = {
+        c: h for h in bot.build_handlers(42) for c in getattr(h, "commands", ())
+    }
+    assert by_command["all"].callback is by_command["list"].callback
+
+
 def test_all_handlers_restricted_to_owner():
     handlers = bot.build_handlers(42)
-    assert len(handlers) == 3
+    assert len(handlers) == 4
     for h in handlers:
         ids = _owner_ids(h.filters)
         assert 42 in ids

@@ -134,6 +134,7 @@ def build_handlers(owner_id: int) -> list:
     return [
         MessageHandler(filters.PHOTO & owner_filter, handle_photo),
         CommandHandler("list", handle_list, filters=owner_filter),
+        CommandHandler("all", handle_list, filters=owner_filter),
         CommandHandler("del", handle_del, filters=owner_filter),
     ]
 
